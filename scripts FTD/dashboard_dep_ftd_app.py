@@ -88,6 +88,7 @@ def formato_km(valor):
 
 # === 6️⃣ Inicializar app ===
 app = dash.Dash(__name__)
+server = app.server  # 🔥 Necesario para Render
 app.title = "OBL Digital — DEP FTD Dashboard"
 
 # === 7️⃣ Layout con tema oscuro y dorado ===
@@ -278,4 +279,6 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8050)
+    app.run_server(host="0.0.0.0", port=8050, debug=True)
+
+
