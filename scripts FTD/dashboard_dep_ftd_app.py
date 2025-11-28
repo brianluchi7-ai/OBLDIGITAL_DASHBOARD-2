@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from conexion_mysql import crear_conexion
 
 # ======================================================
-# === OBL DIGITAL DASHBOARD — DEP RTN (Dark Gold Theme) ===
+# === OBL DIGITAL DASHBOARD — DEP FDT (Dark Gold Theme) ===
 # ======================================================
 
 def cargar_datos():
@@ -244,18 +244,18 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
     }
 
     indicador_usuarios = html.Div([
-        html.H4("MOUNT USERS", style={"color": "#D4AF37", "fontWeight": "bold", "marginBottom": "5px"}),
-        html.H2(f"{total_users:,}", style={"color": "#FFFFFF", "fontSize": "36px", "margin": "0"})
+        html.H4("MOUNT USERS", style={"color": "#D4AF37", "fontWeight": "bold"}),
+        html.H2(f"{total_users:,}", style={"color": "#FFFFFF", "fontSize": "36px"})
     ], style=card_style)
 
     indicador_usd = html.Div([
-        html.H4("TOTAL USD", style={"color": "#D4AF37", "fontWeight": "bold", "marginBottom": "5px"}),
-        html.H2(formato_km(total_usd), style={"color": "#FFFFFF", "fontSize": "36px", "margin": "0"})
+        html.H4("TOTAL USD", style={"color": "#D4AF37", "fontWeight": "bold"}),
+        html.H2(formato_km(total_usd), style={"color": "#FFFFFF", "fontSize": "36px"})
     ], style=card_style)
 
     indicador_target = html.Div([
-        html.H4("TARGET", style={"color": "#D4AF37", "fontWeight": "bold", "marginBottom": "5px"}),
-        html.H2(formato_km(target), style={"color": "#FFFFFF", "fontSize": "36px", "margin": "0"})
+        html.H4("TARGET", style={"color": "#D4AF37", "fontWeight": "bold"}),
+        html.H2(formato_km(target), style={"color": "#FFFFFF", "fontSize": "36px"})
     ], style=card_style)
 
 
@@ -280,5 +280,7 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
 
 if __name__ == "__main__":
     app.run_server(host="0.0.0.0", port=8050, debug=True)
+
+
 
 
