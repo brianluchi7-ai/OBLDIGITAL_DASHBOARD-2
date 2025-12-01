@@ -3,11 +3,10 @@ import pandas as pd
 import dash
 from dash import html, dcc, Input, Output, dash_table
 import plotly.express as px
-import plotly.graph_objects as go
 from conexion_mysql import crear_conexion
 
 # ======================================================
-# === OBL DIGITAL DASHBOARD — DEP FDT (Dark Gold Theme) ===
+# === OBL DIGITAL DASHBOARD — DEP FTD (Dark Gold Theme)
 # ======================================================
 
 def cargar_datos():
@@ -77,7 +76,7 @@ for col in ["team", "agent", "country", "affiliate", "id"]:
 
 fecha_min, fecha_max = df["date"].min(), df["date"].max()
 
-# === 5️⃣ Función formato K/M ===
+# === 5️⃣ Formato K/M ===
 def formato_km(valor):
     if valor >= 1_000_000:
         return f"{valor/1_000_000:.2f}M"
@@ -86,12 +85,18 @@ def formato_km(valor):
     else:
         return f"{valor:.0f}"
 
-# === 6️⃣ Inicializar app ===
-app = dash.Dash(__name__)
-server = app.server  # 🔥 Necesario para Render
+# === 6️⃣ Inicializar app con scripts externos ===
+external_scripts = [
+    "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.10.0/pptxgen.bundle.js"
+]
+
+app = dash.Dash(__name__, external_scripts=external_scripts)
+server = app.server
 app.title = "OBL Digital — DEP FTD Dashboard"
 
-# === 7️⃣ Layout con tema oscuro y dorado ===
+# === 7️⃣ Layout ===
 app.layout = html.Div(
     style={
         "backgroundColor": "#0d0d0d",
@@ -111,49 +116,46 @@ app.layout = html.Div(
             style={"display": "flex", "justifyContent": "space-between"},
             children=[
                 # --- Panel de Filtros ---
-                # --- Panel de Filtros ---
-html.Div(
-    style={
-        "width": "25%",
-        "backgroundColor": "#1a1a1a",
-        "padding": "20px",
-        "borderRadius": "12px",
-        "boxShadow": "0 0 15px rgba(212,175,55,0.3)",
-        "textAlign": "center"
-    },
-    children=[
-        html.H4("Date", style={"color": "#D4AF37", "textAlign": "center"}),
+                html.Div(
+                    style={
+                        "width": "25%",
+                        "backgroundColor": "#1a1a1a",
+                        "padding": "20px",
+                        "borderRadius": "12px",
+                        "boxShadow": "0 0 15px rgba(212,175,55,0.3)",
+                        "textAlign": "center"
+                    },
+                    children=[
+                        html.H4("Date", style={"color": "#D4AF37", "textAlign": "center"}),
 
-        dcc.DatePickerRange(
-            id="filtro-fecha",
-            start_date=fecha_min,
-            end_date=fecha_max,
-            display_format="YYYY-MM-DD",
-            style={"marginBottom": "20px", "textAlign": "center"},
-        ),
+                        dcc.DatePickerRange(
+                            id="filtro-fecha",
+                            start_date=fecha_min,
+                            end_date=fecha_max,
+                            display_format="YYYY-MM-DD",
+                            style={"marginBottom": "20px", "textAlign": "center"},
+                        ),
 
-        # === Etiquetas centradas debajo del DatePickerRange ===
-        html.Div([
-            html.Label("Team", style={"color": "#D4AF37", "fontWeight": "bold", "display": "block", "textAlign": "center"}),
-            dcc.Dropdown(sorted(df["team"].dropna().unique()), [], multi=True, id="filtro-team"),
+                        html.Div([
+                            html.Label("Team", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["team"].dropna().unique()), [], multi=True, id="filtro-team"),
 
-            html.Label("Agent", style={"color": "#D4AF37", "fontWeight": "bold", "display": "block", "textAlign": "center"}),
-            dcc.Dropdown(sorted(df["agent"].dropna().unique()), [], multi=True, id="filtro-agent"),
+                            html.Label("Agent", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["agent"].dropna().unique()), [], multi=True, id="filtro-agent"),
 
-            html.Label("Country", style={"color": "#D4AF37", "fontWeight": "bold", "display": "block", "textAlign": "center"}),
-            dcc.Dropdown(sorted(df["country"].dropna().unique()), [], multi=True, id="filtro-country"),
+                            html.Label("Country", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["country"].dropna().unique()), [], multi=True, id="filtro-country"),
 
-            html.Label("Affiliate", style={"color": "#D4AF37", "fontWeight": "bold", "display": "block", "textAlign": "center"}),
-            dcc.Dropdown(sorted(df["affiliate"].dropna().unique()), [], multi=True, id="filtro-affiliate"),
+                            html.Label("Affiliate", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["affiliate"].dropna().unique()), [], multi=True, id="filtro-affiliate"),
 
-            html.Label("ID", style={"color": "#D4AF37", "fontWeight": "bold", "display": "block", "textAlign": "center"}),
-            dcc.Dropdown(sorted(df["id"].dropna().unique()), [], multi=True, id="filtro-id"),
-        ], style={"textAlign": "center"}),
-    ],
-),
+                            html.Label("ID", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["id"].dropna().unique()), [], multi=True, id="filtro-id"),
+                        ]),
+                    ],
+                ),
 
-
-                # --- Panel de contenido ---
+                # --- Panel principal ---
                 html.Div(
                     style={"width": "72%"},
                     children=[
@@ -194,7 +196,7 @@ html.Div(
     ],
 )
 
-# === 8️⃣ Callback principal ===
+# === 8️⃣ Callback ===
 @app.callback(
     [
         Output("indicador-usuarios", "children"),
@@ -233,7 +235,6 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
     total_users = df_filtrado["id"].nunique()
     target = total_usd * 1.1
 
-    # === Indicadores tipo GAUGE (estilo Power BI) ===
     card_style = {
         "backgroundColor": "#1a1a1a",
         "borderRadius": "10px",
@@ -258,28 +259,62 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
         html.H2(formato_km(target), style={"color": "#FFFFFF", "fontSize": "36px"})
     ], style=card_style)
 
-
-    # === Gráficos ===
     fig_country = px.pie(df_filtrado, names="country", values="usd", title="USD by Country", color_discrete_sequence=px.colors.sequential.YlOrBr)
     fig_affiliate = px.pie(df_filtrado, names="affiliate", values="usd", title="USD by Affiliate", color_discrete_sequence=px.colors.sequential.YlOrBr)
     fig_team = px.bar(df_filtrado.groupby("team", as_index=False)["usd"].sum(), x="team", y="usd", title="USD by Team", color="usd", color_continuous_scale="YlOrBr")
     fig_usd_date = px.line(df_filtrado.sort_values("date"), x="date", y="usd", title="USD by Date", markers=True, color_discrete_sequence=["#D4AF37"])
 
     for fig in [fig_country, fig_affiliate, fig_team, fig_usd_date]:
-        fig.update_layout(
-            paper_bgcolor="#0d0d0d",
-            plot_bgcolor="#0d0d0d",
-            font_color="#f2f2f2",
-            title_font_color="#D4AF37"
-        )
+        fig.update_layout(paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d", font_color="#f2f2f2", title_font_color="#D4AF37")
 
-    tabla_data = df_filtrado.to_dict("records")
+    return indicador_usuarios, indicador_usd, indicador_target, fig_country, fig_affiliate, fig_team, fig_usd_date, df_filtrado.to_dict("records")
 
-    return indicador_usuarios, indicador_usd, indicador_target, fig_country, fig_affiliate, fig_team, fig_usd_date, tabla_data
 
+# === 9️⃣ Captura PDF/PPT desde iframe ===
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+<head>
+  {%metas%}
+  <title>OBL Digital — Dashboard FTD</title>
+  {%favicon%}
+  {%css%}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  {%app_entry%}
+  <footer>
+    {%config%}
+    {%scripts%}
+    {%renderer%}
+  </footer>
+
+  <script>
+    window.addEventListener("message", async (event) => {
+      if (!event.data || event.data.action !== "capture_dashboard") return;
+
+      try {
+        const canvas = await html2canvas(document.body, { useCORS: true, scale: 2, backgroundColor: "#0d0d0d" });
+        const imgData = canvas.toDataURL("image/png");
+
+        window.parent.postMessage({
+          action: "capture_image",
+          img: imgData,
+          filetype: event.data.type
+        }, "*");
+      } catch (err) {
+        console.error("Error al capturar dashboard:", err);
+        window.parent.postMessage({ action: "capture_done" }, "*");
+      }
+    });
+  </script>
+</body>
+</html>
+'''
 
 if __name__ == "__main__":
     app.run_server(host="0.0.0.0", port=8050, debug=True)
+
 
 
 
