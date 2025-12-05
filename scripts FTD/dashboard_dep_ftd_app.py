@@ -30,6 +30,11 @@ def cargar_datos():
 df = cargar_datos()
 df.columns = [c.strip().lower() for c in df.columns]
 
+# Si no existe la columna 'source', la creamos vacía para evitar error
+if "source" not in df.columns:
+    df["source"] = None
+    print("⚠️ Columna 'source' no encontrada en DB — se agregó vacía temporalmente.")
+
 # === 2️⃣ Normalizar fechas ===
 def convertir_fecha(valor):
     try:
@@ -50,7 +55,6 @@ def limpiar_usd(valor):
     if pd.isna(valor): return 0.0
     s = str(valor).strip()
     if s == "": return 0.0
-
     s = re.sub(r"[^\d,.\-]", "", s)
     if "." in s and "," in s:
         if s.rfind(",") > s.rfind("."):
@@ -62,14 +66,15 @@ def limpiar_usd(valor):
         s = s.replace(",", ".") if len(partes[-1]) == 2 else s.replace(",", "")
     elif s.count(".") > 1:
         s = s.replace(".", "")
-
-    try: return float(s)
-    except: return 0.0
+    try:
+        return float(s)
+    except:
+        return 0.0
 
 df["usd"] = df["usd"].apply(limpiar_usd)
 
 # === 4️⃣ Limpieza de texto ===
-for col in ["team", "agent", "country", "affiliate", "id"]:
+for col in ["team", "agent", "country", "affiliate", "source", "id"]:
     if col in df.columns:
         df[col] = df[col].astype(str).str.strip().str.title()
         df[col].replace({"Nan": None, "None": None, "": None}, inplace=True)
@@ -85,7 +90,7 @@ def formato_km(valor):
     else:
         return f"{valor:.0f}"
 
-# === 6️⃣ Inicializar app con scripts externos ===
+# === 6️⃣ Inicializar app ===
 external_scripts = [
     "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
@@ -148,6 +153,9 @@ app.layout = html.Div(
 
                             html.Label("Affiliate", style={"color": "#D4AF37", "fontWeight": "bold"}),
                             dcc.Dropdown(sorted(df["affiliate"].dropna().unique()), [], multi=True, id="filtro-affiliate"),
+
+                            html.Label("Source", style={"color": "#D4AF37", "fontWeight": "bold"}),
+                            dcc.Dropdown(sorted(df["source"].dropna().unique()), [], multi=True, id="filtro-source"),
 
                             html.Label("ID", style={"color": "#D4AF37", "fontWeight": "bold"}),
                             dcc.Dropdown(sorted(df["id"].dropna().unique()), [], multi=True, id="filtro-id"),
@@ -215,10 +223,11 @@ app.layout = html.Div(
         Input("filtro-agent", "value"),
         Input("filtro-country", "value"),
         Input("filtro-affiliate", "value"),
+        Input("filtro-source", "value"),
         Input("filtro-id", "value"),
     ],
 )
-def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
+def actualizar_dashboard(start, end, team, agent, country, affiliate, source, id_user):
     df_filtrado = df.copy()
 
     if start and end:
@@ -229,12 +238,15 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
     if agent: df_filtrado = df_filtrado[df_filtrado["agent"].isin(agent)]
     if country: df_filtrado = df_filtrado[df_filtrado["country"].isin(country)]
     if affiliate: df_filtrado = df_filtrado[df_filtrado["affiliate"].isin(affiliate)]
+    if source: df_filtrado = df_filtrado[df_filtrado["source"].isin(source)]
     if id_user: df_filtrado = df_filtrado[df_filtrado["id"].isin(id_user)]
 
+    # --- Totales ---
     total_usd = df_filtrado["usd"].sum()
     total_users = df_filtrado["id"].nunique()
     target = total_usd * 1.1
 
+    # --- Tarjetas ---
     card_style = {
         "backgroundColor": "#1a1a1a",
         "borderRadius": "10px",
@@ -259,6 +271,7 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
         html.H2(formato_km(target), style={"color": "#FFFFFF", "fontSize": "36px"})
     ], style=card_style)
 
+    # --- Gráficos ---
     fig_country = px.pie(df_filtrado, names="country", values="usd", title="USD by Country", color_discrete_sequence=px.colors.sequential.YlOrBr)
     fig_affiliate = px.pie(df_filtrado, names="affiliate", values="usd", title="USD by Affiliate", color_discrete_sequence=px.colors.sequential.YlOrBr)
     fig_team = px.bar(df_filtrado.groupby("team", as_index=False)["usd"].sum(), x="team", y="usd", title="USD by Team", color="usd", color_continuous_scale="YlOrBr")
@@ -268,6 +281,7 @@ def actualizar_dashboard(start, end, team, agent, country, affiliate, id_user):
         fig.update_layout(paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d", font_color="#f2f2f2", title_font_color="#D4AF37")
 
     return indicador_usuarios, indicador_usd, indicador_target, fig_country, fig_affiliate, fig_team, fig_usd_date, df_filtrado.to_dict("records")
+
 
 
 # === 9️⃣ Captura PDF/PPT desde iframe ===
@@ -312,10 +326,6 @@ app.index_string = '''
 </html>
 '''
 
+
 if __name__ == "__main__":
     app.run_server(host="0.0.0.0", port=8050, debug=True)
-
-
-
-
-
